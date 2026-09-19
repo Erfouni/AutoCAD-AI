@@ -12,11 +12,21 @@
 
 param(
     [int]$Port = 8770,
-    [string]$NgrokExe = "C:\Users\zainm\mcp_setup\ngrok.exe"
+    # Defaults to %USERPROFILE%\mcp_setup\ngrok.exe, then to ngrok on PATH.
+    [string]$NgrokExe = ""
 )
 
 $ErrorActionPreference = "Stop"
 Set-Location -Path $PSScriptRoot
+
+if (-not $NgrokExe) {
+    $NgrokExe = Join-Path $env:USERPROFILE "mcp_setup\ngrok.exe"
+    if (-not (Test-Path $NgrokExe)) {
+        $onPath = Get-Command ngrok -CommandType Application -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+        if ($onPath) { $NgrokExe = $onPath.Source }
+    }
+}
 
 $secretFile = Join-Path $PSScriptRoot ".secret"
 if (-not (Test-Path $secretFile)) {

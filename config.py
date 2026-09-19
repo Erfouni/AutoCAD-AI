@@ -15,12 +15,19 @@ LOG_DIR = BASE_DIR / "logs"
 SECRET_FILE = BASE_DIR / ".secret"
 
 HOST = os.environ.get("ACAD_MCP_HOST", "127.0.0.1")
-PORT = int(os.environ.get("ACAD_MCP_PORT", "8765"))
 
-# Folder the server is allowed to write DWG/PDF into. Deliberately outside
-# OneDrive: sync can lock a file microseconds after AutoCAD writes it.
+# 8770 rather than the more obvious 8765: that one belongs to the Codex AutoCAD
+# host this project is meant to run alongside, and 8766 sits inside a
+# Windows-reserved range on the machine this was built on.
+PORT = int(os.environ.get("ACAD_MCP_PORT") or "8770")
+
+# Folder the server is allowed to write DWG/PDF into. The profile root is
+# deliberately outside OneDrive: sync can lock a file microseconds after
+# AutoCAD writes it. An empty variable counts as unset -- otherwise it would
+# resolve to the current directory and the server would write into the source
+# tree.
 SAVE_DIR = Path(
-    os.environ.get("ACAD_MCP_SAVE_DIR", r"C:\Users\zainm\AutoCAD-MCP-Out")
+    os.environ.get("ACAD_MCP_SAVE_DIR") or Path.home() / "AutoCAD-MCP-Out"
 ).resolve()
 
 # Optional bearer token. When a client sends an Authorization header it must

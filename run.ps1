@@ -13,8 +13,6 @@ if (-not (Get-Process -Name acad -ErrorAction SilentlyContinue)) {
     Write-Host ""
 }
 
-# 8765 is taken by the Codex AutoCAD host and 8766 is inside a Windows-reserved
-# range on this machine, so this project defaults to 8770.
-if (-not $env:ACAD_MCP_PORT) { $env:ACAD_MCP_PORT = "8770" }
-
+# The port (8770 unless ACAD_MCP_PORT says otherwise) is decided in config.py,
+# so `python server.py` and this script always agree.
 python server.py
