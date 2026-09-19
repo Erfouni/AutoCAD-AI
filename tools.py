@@ -62,7 +62,9 @@ def _color_index(color: str | int | None) -> int | None:
 def _safe_output_path(filename: str, extension: str) -> Path:
     """Resolve filename inside the one folder the server may write to."""
     candidate = Path(str(filename).strip().strip('"').strip("'"))
-    if candidate.is_absolute() or ".." in candidate.parts:
+    # anchor, not is_absolute(): on Windows "\dir\x" and "C:x" are not absolute,
+    # yet joining either onto SAVE_DIR throws away part of SAVE_DIR.
+    if candidate.anchor or ".." in candidate.parts:
         candidate = Path(candidate.name)
     if not candidate.name:
         raise AcadError("A file name is required.")
@@ -70,7 +72,9 @@ def _safe_output_path(filename: str, extension: str) -> Path:
         candidate = candidate.with_suffix(extension)
 
     resolved = (config.SAVE_DIR / candidate).resolve()
-    if not str(resolved).lower().startswith(str(config.SAVE_DIR).lower()):
+    # A path comparison, not a string prefix: "...\Out-other" starts with
+    # "...\Out" but is a different folder.
+    if not resolved.is_relative_to(config.SAVE_DIR):
         raise AcadError(f"Files can only be written inside {config.SAVE_DIR}.")
     resolved.parent.mkdir(parents=True, exist_ok=True)
     return resolved
