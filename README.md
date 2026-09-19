@@ -131,7 +131,7 @@ All optional, all environment variables.
 |---|---|---|
 | `ACAD_MCP_PORT` | `8770` | Listen port. 8765 is Codex, 8766 is Windows-reserved here. |
 | `ACAD_MCP_HOST` | `127.0.0.1` | Leave it. Binding wider exposes AutoCAD to your LAN. |
-| `ACAD_MCP_SAVE_DIR` | `C:\Users\zainm\AutoCAD-MCP-Out` | The only folder the server may write to. Kept out of OneDrive because sync locks files AutoCAD has just written. |
+| `ACAD_MCP_SAVE_DIR` | `%USERPROFILE%\AutoCAD-MCP-Out` | The only folder the server may write to. Kept out of OneDrive because sync locks files AutoCAD has just written. |
 | `ACAD_MCP_AUTH_TOKEN` | *(unset)* | If set, any request that *does* send an `Authorization` header must match it. |
 | `ACAD_MCP_SECRET_PATH` | from `.secret` | Override the secret URL segment. |
 | `ACAD_MCP_ENABLE_SEND_COMMAND` | *(off)* | `1` adds a tool that runs arbitrary AutoCAD commands and AutoLISP. See the warning below. |
@@ -153,7 +153,7 @@ files into the output folder.
 - If the URL leaks, delete `.secret`, restart, and re-paste the new URL.
 
 Unrelated but worth doing: the ngrok authtoken sits in plaintext in
-`C:\Users\zainm\mcp_setup\ngrok.yml`. Rotate it at dashboard.ngrok.com.
+`%USERPROFILE%\mcp_setup\ngrok.yml`. Rotate it at dashboard.ngrok.com.
 
 ## Testing without any AI
 
