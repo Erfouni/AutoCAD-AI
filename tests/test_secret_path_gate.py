@@ -175,6 +175,26 @@ class BearerToken(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertTrue(downstream.reached)
 
+    def test_token_is_compared_in_constant_time(self):
+        """A plain != would let response timing leak how much of a guess matched."""
+        gate, downstream = build()
+        with mock.patch.object(config, "AUTH_TOKEN", "s3cret"), \
+                mock.patch.object(server.hmac, "compare_digest",
+                                  wraps=server.hmac.compare_digest) as digest:
+            status, _ = call(gate, "/unit-test-secret",
+                             headers=[(b"authorization", b"Bearer wrong")])
+        self.assertEqual(status, 401)
+        digest.assert_called_once()
+
+    def test_non_ascii_token_is_refused_not_crashed(self):
+        """compare_digest raises on non-ASCII str; the gate must still say 401."""
+        gate, downstream = build()
+        with mock.patch.object(config, "AUTH_TOKEN", "s3cret"):
+            status, _ = call(gate, "/unit-test-secret",
+                             headers=[(b"authorization", "Bearer sëcret".encode())])
+        self.assertEqual(status, 401)
+        self.assertFalse(downstream.reached)
+
     def test_bad_token_on_a_bad_path_is_still_a_404(self):
         """The path check runs first; a wrong path must not reveal the token."""
         gate, downstream = build()
