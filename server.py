@@ -16,6 +16,7 @@ sole way in.
 from __future__ import annotations
 
 import functools
+import hmac
 import json
 import logging
 import sys
@@ -135,7 +136,14 @@ class SecretPathAuth:
         if config.AUTH_TOKEN:
             headers = dict(scope.get("headers") or [])
             presented = headers.get(b"authorization", b"").decode(errors="replace")
-            if presented and presented.strip() != f"Bearer {config.AUTH_TOKEN}":
+            expected = f"Bearer {config.AUTH_TOKEN}"
+            # compare_digest rather than !=, so the time taken does not reveal
+            # how much of a guessed token was right. Compared as bytes because
+            # it rejects str with non-ASCII characters, which a hostile header
+            # can carry.
+            if presented and not hmac.compare_digest(
+                presented.strip().encode(), expected.encode()
+            ):
                 log.warning("bad bearer token from %s", _client(scope))
                 return await _plain(send, 401, b"Unauthorized")
 

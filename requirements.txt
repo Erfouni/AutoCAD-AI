@@ -1,7 +1,8 @@
 # AutoCAD MCP server dependencies.
 #   pip install -r requirements.txt
 #
-# Both of these were already present on this machine; the pins record what the
-# server was verified against on 2026-07-30.
-mcp==1.27.1
+# The pins record what the server was verified against: pywin32 live with
+# AutoCAD on 2026-07-30; mcp raised from 1.27.1 to 1.28.1 on 2026-09-21 to
+# clear three published advisories, checked by tests/test_assembled_server.py.
+mcp==1.28.1
 pywin32==311
