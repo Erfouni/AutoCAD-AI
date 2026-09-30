@@ -197,3 +197,7 @@ pick another and set `ACAD_MCP_PORT`.
 calls from the thread that initialised COM, and rejects them outright while it
 is busy, so every tool hands its work to a single dedicated thread that retries
 with backoff and reconnects if AutoCAD restarts.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
