@@ -4,5 +4,9 @@
 # The pins record what the server was verified against: pywin32 live with
 # AutoCAD on 2026-07-30; mcp raised from 1.27.1 to 1.28.1 on 2026-09-21 to
 # clear three published advisories, checked by tests/test_assembled_server.py.
+# Pillow is what lets capture_view downscale its render
+# (tests/test_shrink_png.py); 12.3.0 is clear of the advisories open
+# against 12.2.0.
 mcp==1.28.1
 pywin32==311
+Pillow==12.3.0

@@ -34,8 +34,8 @@ Pick Codex when you want the safety controls.
 pip install -r requirements.txt
 ```
 
-Both dependencies were already installed on this machine; the file pins the
-versions this was verified against.
+The file pins the versions this was verified against. Pillow is what
+`capture_view` uses to downscale its render; without it you get the full plot.
 
 ## Running it
 
