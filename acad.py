@@ -213,10 +213,24 @@ class AcadBridge:
         try:
             return future.result(timeout=timeout)
         except TimeoutError:
+            # A call still waiting in the queue is withdrawn, so it cannot fire
+            # once AutoCAD is free and duplicate whatever the model sends next.
+            # One already running on the COM thread cannot be stopped.
+            if future.cancel():
+                fate = "The request was not sent to AutoCAD."
+            elif future.done():
+                return future.result()
+            else:
+                fate = (
+                    "The request was already running and may still complete once "
+                    "AutoCAD is free, so check with list_entities before sending "
+                    "it again."
+                )
             raise AcadError(
                 f"AutoCAD did not respond within {timeout:.0f}s. It is most likely "
                 "showing a dialog box or waiting for input at the command line. "
-                "Switch to AutoCAD, press Escape, close any dialog, then retry."
+                "Switch to AutoCAD, press Escape, close any dialog, then retry. "
+                f"{fate}"
             ) from None
 
     def reset(self) -> None:
