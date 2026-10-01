@@ -13,6 +13,7 @@ because initialising and listing tools never touches COM.
 
 import os
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -23,6 +24,7 @@ os.environ.setdefault("ACAD_MCP_SECRET_PATH", "unit-test-secret")
 
 from starlette.testclient import TestClient  # noqa: E402
 
+import acad  # noqa: E402
 import config  # noqa: E402
 import server  # noqa: E402
 
@@ -127,6 +129,47 @@ class AssembledServer(unittest.TestCase):
                 INITIALIZE, {**MCP_HEADERS, "Authorization": "Bearer s3cret"})
         self.assertEqual(refused.status_code, 401)
         self.assertEqual(accepted.status_code, 200, accepted.text)
+
+    def test_a_stuck_tool_call_does_not_stall_the_server(self):
+        """A call waiting on AutoCAD (behind a dialog, say) can sit there for
+        minutes. It must not hold the event loop: /health has to answer
+        meanwhile, and so do other clients."""
+        entered, release = threading.Event(), threading.Event()
+
+        def stuck_run(_work, _timeout):
+            entered.set()
+            release.wait(30)
+            return "ABC"
+
+        call = rpc("tools/call", {
+            "name": "get_entity_info", "arguments": {"handle": "ABC"}}, id_=3)
+        replies = {}
+        caller = threading.Thread(
+            target=lambda: replies.setdefault("tool", self.post(call)),
+            daemon=True)
+        prober = threading.Thread(
+            target=lambda: replies.setdefault("health", self.client.get(
+                f"/{SECRET}/health", headers=TUNNEL)),
+            daemon=True)
+
+        with mock.patch.object(acad.bridge, "run", side_effect=stuck_run):
+            caller.start()
+            try:
+                self.assertTrue(entered.wait(10), "the tool call never started")
+                prober.start()
+                prober.join(5)
+                self.assertFalse(
+                    prober.is_alive(),
+                    "/health did not answer while a tool call was waiting")
+            finally:
+                release.set()
+                caller.join(10)
+                if prober.ident:
+                    prober.join(10)
+
+        self.assertEqual(replies["health"].status_code, 200)
+        self.assertEqual(replies["tool"].status_code, 200, replies["tool"].text)
+        self.assertFalse(replies["tool"].json()["result"].get("isError"))
 
 
 if __name__ == "__main__":
