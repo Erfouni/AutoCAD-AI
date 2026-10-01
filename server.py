@@ -23,6 +23,7 @@ import sys
 import time
 from datetime import datetime, timezone
 
+import anyio
 import uvicorn
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
@@ -72,6 +73,13 @@ class LoggingRegistrar:
     the tool layer having to know that logging exists. functools.wraps keeps the
     signature and type hints intact, which is what FastMCP builds its JSON
     schema from.
+
+    The wrapper is also what keeps a slow call from stalling the server.
+    FastMCP runs a plain function straight on the event loop, so one call
+    waiting on AutoCAD (minutes, behind a dialog) would hold every other
+    request, /health included. The tool runs on a worker thread instead and
+    the loop stays free; the COM bridge still puts the AutoCAD work itself on
+    its one thread, one call at a time.
     """
 
     def __init__(self, mcp: FastMCP) -> None:
@@ -83,10 +91,12 @@ class LoggingRegistrar:
 
         def register(fn):
             @functools.wraps(fn)
-            def logged(*call_args, **call_kwargs):
+            async def logged(*call_args, **call_kwargs):
                 started = time.monotonic()
                 try:
-                    result = fn(*call_args, **call_kwargs)
+                    result = await anyio.to_thread.run_sync(
+                        functools.partial(fn, *call_args, **call_kwargs)
+                    )
                 except Exception as exc:  # noqa: BLE001 - re-raised below
                     _record(
                         fn.__name__, call_kwargs,
