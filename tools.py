@@ -59,6 +59,12 @@ def _color_index(color: str | int | None) -> int | None:
     )
 
 
+# A dot is read as a file extension only when two to four ASCII letters follow
+# it (.dwg, .pdf, .exe, .jpeg). Any other tail, such as "Sheet A.1" or
+# "Sheet 1.A", is part of the name and is kept.
+_EXTENSION_SHAPE = re.compile(r"\.[A-Za-z]{2,4}")
+
+
 def _safe_output_path(filename: str, extension: str) -> Path:
     """Resolve filename inside the one folder the server may write to."""
     candidate = Path(str(filename).strip().strip('"').strip("'"))
@@ -69,7 +75,10 @@ def _safe_output_path(filename: str, extension: str) -> Path:
     if not candidate.name:
         raise AcadError("A file name is required.")
     if candidate.suffix.lower() != extension:
-        candidate = candidate.with_suffix(extension)
+        if _EXTENSION_SHAPE.fullmatch(candidate.suffix):
+            candidate = candidate.with_suffix(extension)
+        else:
+            candidate = candidate.with_name(candidate.name + extension)
 
     resolved = (config.SAVE_DIR / candidate).resolve()
     # A path comparison, not a string prefix: "...\Out-other" starts with

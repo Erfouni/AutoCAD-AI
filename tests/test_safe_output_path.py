@@ -54,6 +54,27 @@ class SafeOutputPath(unittest.TestCase):
             tools._safe_output_path("plan.exe", ".pdf"), self.save_dir / "plan.pdf"
         )
 
+    def test_longer_real_extension_is_replaced(self):
+        self.assertEqual(
+            tools._safe_output_path("plan.jpeg", ".pdf"), self.save_dir / "plan.pdf"
+        )
+
+    def test_dotted_sheet_name_keeps_its_tail(self):
+        # The tail is not an extension, so it stays in the name.
+        self.assertEqual(
+            tools._safe_output_path("Sheet A.1", ".dwg"),
+            self.save_dir / "Sheet A.1.dwg",
+        )
+        self.assertEqual(
+            tools._safe_output_path("Sheet 1.A", ".dwg"),
+            self.save_dir / "Sheet 1.A.dwg",
+        )
+
+    def test_dotted_sheet_names_do_not_share_a_file(self):
+        first = tools._safe_output_path("Sheet A.1", ".dwg")
+        second = tools._safe_output_path("Sheet A.2", ".dwg")
+        self.assertNotEqual(first, second)
+
     def test_subfolder_is_allowed_and_created(self):
         target = tools._safe_output_path("floor-1/plan.dwg", ".dwg")
         self.assertEqual(target, self.save_dir / "floor-1" / "plan.dwg")
