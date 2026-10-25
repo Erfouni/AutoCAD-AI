@@ -70,4 +70,6 @@ def ensure_dirs() -> None:
 
 
 def local_url() -> str:
-    return f"http://{HOST}:{PORT}{MCP_PATH}"
+    # An IPv6 host needs brackets before the port, or the URL cannot be parsed.
+    host = f"[{HOST}]" if ":" in HOST else HOST
+    return f"http://{host}:{PORT}{MCP_PATH}"
