@@ -11,6 +11,7 @@ import importlib
 import os
 import tempfile
 import unittest
+import urllib.parse
 from pathlib import Path
 from unittest import mock
 
@@ -19,7 +20,12 @@ os.environ.setdefault("ACAD_MCP_SECRET_PATH", "unit-test-secret")
 
 import config  # noqa: E402
 
-_VARIABLES = ("ACAD_MCP_PORT", "ACAD_MCP_SAVE_DIR", "ACAD_MCP_SECRET_PATH")
+_VARIABLES = (
+    "ACAD_MCP_HOST",
+    "ACAD_MCP_PORT",
+    "ACAD_MCP_SAVE_DIR",
+    "ACAD_MCP_SECRET_PATH",
+)
 
 
 def load(**env):
@@ -41,6 +47,33 @@ class PortDefault(unittest.TestCase):
 
     def test_empty_variable_counts_as_unset(self):
         self.assertEqual(load(ACAD_MCP_PORT="").PORT, 8770)
+
+
+class LocalUrl(unittest.TestCase):
+    """The advertised connector URL must parse for every host shape."""
+
+    def test_ipv6_host_is_bracketed_and_parses(self):
+        url = load(
+            ACAD_MCP_HOST="::1", ACAD_MCP_SECRET_PATH="offline-fixture"
+        ).local_url()
+        self.assertEqual(url, "http://[::1]:8770/offline-fixture/mcp")
+        parts = urllib.parse.urlsplit(url)
+        self.assertEqual(parts.hostname, "::1")
+        self.assertEqual(parts.port, 8770)
+        self.assertEqual(parts.path, "/offline-fixture/mcp")
+
+    def test_ipv4_and_hostname_hosts_keep_their_shape(self):
+        cases = [
+            ("127.0.0.1", "http://127.0.0.1:8770/offline-fixture/mcp"),
+            ("localhost", "http://localhost:8770/offline-fixture/mcp"),
+        ]
+        for host, expected in cases:
+            with self.subTest(host=host):
+                url = load(
+                    ACAD_MCP_HOST=host, ACAD_MCP_SECRET_PATH="offline-fixture"
+                ).local_url()
+                self.assertEqual(url, expected)
+                self.assertEqual(urllib.parse.urlsplit(url).hostname, host)
 
 
 class SaveDirDefault(unittest.TestCase):
